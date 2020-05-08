@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Razor.TagHelpers;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using WalkingTec.Mvvm.Core.Extensions;
 
@@ -91,17 +93,39 @@ namespace WalkingTec.Mvvm.TagHelpers.LayUI
             {
                 output.Content.SetHtmlContent(Text ?? string.Empty);
             }
+            string submitButtonUrl = "";
+            if (this is SubmitButtonTagHelper sbt)
+            {
+                if (string.IsNullOrEmpty(sbt.SubmitUrl) == false && context.Items.ContainsKey("formid") == true)
+                {
+                    submitButtonUrl = $"$('#{context.Items["formid"]}').attr('action','{sbt.SubmitUrl}');";
+                }
+            }
+            string onclick = null;
             if (string.IsNullOrEmpty(Click) == false && Disabled == false)
             {
-                output.PostElement.AppendHtml($@"
+                if (this is SubmitButtonTagHelper)
+                {
+                    onclick = Click+";return true;";
+                }
+                else
+                {
+                    onclick = Click + ";return false;";
+                }
+            }
+            if (string.IsNullOrEmpty(Click) == true && Disabled == false)
+            {
+                 onclick = "return true;";
+            }
+            output.PostElement.AppendHtml($@"
 <script>
   $('#{Id}').on('click',function(){{
-    {Click};
-    return false;
+    {submitButtonUrl}
+    {onclick}
 }});
 </script>
 ");
-            }
+
             base.Process(context, output);
         }
 
